@@ -5,6 +5,29 @@ const base = import.meta.env.BASE_URL;
 ---
 
 <Layout titel="Beheer" beschrijving="Beheeromgeving voor de materieelverhuur van Kloosterman bouw en houtbewerking.">
+  <!-- Demo-login. Let op: dit is een schijnbeveiliging in de browser
+       (admin/admin). Voor een echt afgeschermde achterkant is een
+       server met echte authenticatie nodig. -->
+  <div id="login-overlay" class="login-overlay">
+    <form id="login-form" class="login-kaart" novalidate>
+      <p class="kruimel login-kruimel">Beheer · inloggen</p>
+      <h1>Verhuurbeheer</h1>
+      <p class="login-uitleg">Log in om de planning, reserveringen en facturen te beheren.</p>
+      <div class="veld">
+        <label for="login-gebruiker">Gebruikersnaam</label>
+        <input type="text" id="login-gebruiker" autocomplete="username" required />
+      </div>
+      <div class="veld">
+        <label for="login-wachtwoord">Wachtwoord</label>
+        <input type="password" id="login-wachtwoord" autocomplete="current-password" required />
+      </div>
+      <p id="login-fout" class="login-fout" role="alert" hidden>Onjuiste gebruikersnaam of wachtwoord.</p>
+      <button type="submit" class="knop login-knop">Inloggen</button>
+      <p class="login-hint">Demo-inlog: <code>admin</code> / <code>admin</code></p>
+    </form>
+  </div>
+
+  <div id="beheer-inhoud" hidden>
   <section class="sectie pagina-kop">
     <div class="container">
       <p class="kruimel">Beheer · achterkant</p>
@@ -16,6 +39,7 @@ const base = import.meta.env.BASE_URL;
       <p class="demo-balk">
         🔒 <strong>Demo-beheeromgeving.</strong> In een echt systeem zit hier een login.
         Gegevens staan nu in deze browser. <button id="reset-demo" type="button" class="reset-knop">Demo resetten</button>
+        · <button id="uitloggen" type="button" class="reset-knop">Uitloggen</button>
         · <a href={`${base}verhuur`}>Naar verhuurpagina</a>
       </p>
     </div>
@@ -74,6 +98,7 @@ const base = import.meta.env.BASE_URL;
       <div id="facturen" class="facturen-lijst"></div>
     </div>
   </section>
+  </div>
 </Layout>
 
 <script>
@@ -266,10 +291,132 @@ const base = import.meta.env.BASE_URL;
     }
   });
 
-  tekenAlles();
+  // ── Demo-login (admin / admin) ──────────────────────────────
+  // Schijnbeveiliging in de browser; voldoende voor een demo, maar geen
+  // echte beveiliging. Voor productie hoort hier server-side authenticatie.
+  const AUTH_SLEUTEL = 'khb_beheer_auth';
+  const overlay = $('#login-overlay');
+  const inhoud = $('#beheer-inhoud');
+  const loginForm = $<HTMLFormElement>('#login-form');
+  const loginFout = $('#login-fout');
+
+  function toonBeheer() {
+    if (overlay) overlay.hidden = true;
+    if (inhoud) inhoud.hidden = false;
+    tekenAlles();
+  }
+
+  function toonLogin() {
+    if (overlay) overlay.hidden = false;
+    if (inhoud) inhoud.hidden = true;
+  }
+
+  if (sessionStorage.getItem(AUTH_SLEUTEL) === 'ja') {
+    toonBeheer();
+  } else {
+    toonLogin();
+  }
+
+  loginForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const g = $<HTMLInputElement>('#login-gebruiker')?.value.trim();
+    const w = $<HTMLInputElement>('#login-wachtwoord')?.value ?? '';
+    if (g === 'admin' && w === 'admin') {
+      sessionStorage.setItem(AUTH_SLEUTEL, 'ja');
+      if (loginFout) loginFout.hidden = true;
+      toonBeheer();
+    } else if (loginFout) {
+      loginFout.hidden = false;
+    }
+  });
+
+  $('#uitloggen')?.addEventListener('click', () => {
+    sessionStorage.removeItem(AUTH_SLEUTEL);
+    toonLogin();
+    window.scrollTo({ top: 0 });
+  });
 </script>
 
 <style>
+  /* Login-scherm */
+  .login-overlay {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.25rem;
+    background-color: var(--kleur-creme-donker);
+  }
+
+  .login-kaart {
+    background-color: var(--kleur-wit);
+    border: 1px solid var(--kleur-creme-donker);
+    border-top: 5px solid var(--kleur-rood);
+    border-radius: var(--radius);
+    box-shadow: var(--schaduw);
+    padding: 2rem;
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .login-kaart h1 { margin: 0; font-size: 1.6rem; }
+  .login-kruimel { margin-bottom: 0; color: var(--kleur-hout-donker); }
+  .login-uitleg { margin: 0 0 0.5rem; color: var(--kleur-tekst-zacht); font-size: 0.95rem; }
+
+  .login-kaart .veld {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .login-kaart label {
+    font-family: var(--font-kop);
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--kleur-rood);
+  }
+
+  .login-kaart input {
+    font-family: inherit;
+    font-size: 1rem;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid var(--kleur-creme-donker);
+    border-radius: 8px;
+    background-color: var(--kleur-creme);
+    color: var(--kleur-tekst);
+  }
+
+  .login-kaart input:focus {
+    outline: 2px solid var(--kleur-hout-licht);
+    outline-offset: 1px;
+  }
+
+  .login-knop { margin-top: 0.5rem; text-align: center; cursor: pointer; }
+
+  .login-fout {
+    margin: 0;
+    color: var(--kleur-rood);
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .login-hint {
+    margin: 0.4rem 0 0;
+    font-size: 0.82rem;
+    color: var(--kleur-tekst-zacht);
+    text-align: center;
+  }
+
+  .login-hint code {
+    background-color: var(--kleur-creme-donker);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+  }
+
   .pagina-kop {
     background-color: var(--kleur-rood);
     color: var(--kleur-creme);

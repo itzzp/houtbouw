@@ -85,6 +85,29 @@ const specialisaties = [
     </div>
   </section>
 
+  <section class="sectie kaart-sectie">
+    <div class="container">
+      <h2>Waar je ons vindt</h2>
+      <p class="sectie-uitleg">
+        Ons adres: <strong>Provincialeweg 127, 9863 PE Doezum</strong>.
+        <a
+          href="https://www.google.com/maps/search/?api=1&query=Provincialeweg+127+9863+PE+Doezum"
+          target="_blank"
+          rel="noopener"
+          >Open route in Google Maps →</a
+        >
+      </p>
+      <div class="kaart-wrap">
+        <iframe
+          title="Kaart Provincialeweg 127, Doezum"
+          src="https://www.google.com/maps?q=Provincialeweg%20127%2C%209863%20PE%20Doezum&output=embed"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+      </div>
+    </div>
+  </section>
+
   <section class="sectie specialisaties">
     <div class="container">
       <h2 class="tekst-midden">Onze specialisaties</h2>
@@ -172,6 +195,28 @@ const specialisaties = [
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-bottom: 0.15rem;
+  }
+
+  .kaart-sectie .sectie-uitleg {
+    margin-top: -0.4rem;
+    color: var(--kleur-tekst-zacht);
+  }
+
+  .kaart-wrap {
+    margin-top: 1.25rem;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--schaduw-zacht);
+    border: 1px solid var(--kleur-creme-donker);
+    aspect-ratio: 16 / 9;
+    background-color: var(--kleur-creme-donker);
+  }
+
+  .kaart-wrap iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
   }
 
   .specialisaties {
