@@ -175,7 +175,7 @@ const base = import.meta.env.BASE_URL;
     }
 
     const nuPct = pct(nu);
-    let html = '';
+    let rijen = '';
     for (const [matId, lijst] of perMat) {
       const naam = materieelById(matId)?.naam ?? matId;
       const balken = lijst
@@ -183,13 +183,13 @@ const base = import.meta.env.BASE_URL;
           const st = weergaveStatus(r);
           const links = Math.max(0, pct(r.start));
           const breedte = Math.min(100 - links, pct(r.eind) - links + 100 / 60);
-          return `<div class="tijdbalk tijdbalk--${st}" style="left:${links}%;width:${breedte}%" title="${r.klant}: ${periodeNL(r.start, r.eind)}"><span>${r.klant}</span></div>`;
+          return `<div class="tijdbalk tijdbalk--${st}" style="left:${links}%;width:${breedte}%" title="${r.klant} — ${periodeNL(r.start, r.eind)}"><span>${r.klant}</span></div>`;
         })
         .join('');
-      html += `<div class="planning-rij"><div class="planning-naam">${naam}</div><div class="planning-spoor"><div class="nu-lijn" style="left:${nuPct}%"></div>${balken}</div></div>`;
+      rijen += `<div class="planning-rij"><div class="planning-naam">${naam}</div><div class="planning-spoor"><div class="nu-lijn" style="left:${nuPct}%"></div>${balken}</div></div>`;
     }
-    html += `<div class="planning-as"><span>${datumNL(start.toISOString().slice(0, 10))}</span><span>vandaag</span><span>${datumNL(eind.toISOString().slice(0, 10))}</span></div>`;
-    board.innerHTML = html;
+    const as = `<div class="planning-as"><span>${datumNL(start.toISOString().slice(0, 10))}</span><span>vandaag</span><span>${datumNL(eind.toISOString().slice(0, 10))}</span></div>`;
+    board.innerHTML = `<div class="planning-scroll"><div class="planning-inner">${rijen}${as}</div></div>`;
   }
 
   // ── Reserveringen-tabel ─────────────────────────────────────
@@ -507,13 +507,23 @@ const base = import.meta.env.BASE_URL;
     background-color: var(--kleur-wit);
     border: 1px solid var(--kleur-creme-donker);
     border-radius: var(--radius);
-    padding: 1rem 1.25rem;
+    padding: 1rem;
     overflow: hidden;
+  }
+
+  /* Horizontaal scrollbaar zodat de tijdbalk ook op mobiel ruimte houdt. */
+  .planning-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .planning-inner {
+    min-width: 640px;
   }
 
   .planning-rij {
     display: grid;
-    grid-template-columns: 130px 1fr;
+    grid-template-columns: 150px 1fr;
     align-items: center;
     gap: 0.75rem;
     padding: 0.35rem 0;
@@ -521,8 +531,12 @@ const base = import.meta.env.BASE_URL;
 
   .planning-naam {
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     color: var(--kleur-tekst);
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .planning-spoor {
@@ -571,7 +585,7 @@ const base = import.meta.env.BASE_URL;
     display: flex;
     justify-content: space-between;
     margin-top: 0.5rem;
-    padding-left: 145px;
+    margin-left: 165px;
     font-size: 0.75rem;
     color: var(--kleur-tekst-zacht);
   }
@@ -766,7 +780,5 @@ const base = import.meta.env.BASE_URL;
       font-weight: 600;
       color: var(--kleur-rood);
     }
-    .planning-rij { grid-template-columns: 90px 1fr; }
-    .planning-as { padding-left: 100px; }
   }
 </style>
