@@ -118,6 +118,7 @@ const base = import.meta.env.BASE_URL;
     vandaagISO,
   } from '../scripts/verhuurStore';
   import type { ReserveringStatus } from '../scripts/verhuurStore';
+  import { openFactuurPdf } from '../scripts/factuurPdf';
 
   const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T | null;
 
@@ -249,7 +250,7 @@ const base = import.meta.env.BASE_URL;
     const totaalOmzet = facturen.reduce((s, f) => s + f.totaal, 0);
     box.innerHTML =
       facturen
-        .map((f) => {
+        .map((f, i) => {
           const st = weergaveStatus(f.reservering);
           return `<article class="factuur">
             <div class="factuur-kop">
@@ -270,11 +271,20 @@ const base = import.meta.env.BASE_URL;
                 <tr><td>Btw 21%</td><td>${euro(f.btw)}</td></tr>
                 <tr class="factuur-eind"><td>Totaal</td><td>${euro(f.totaal)}</td></tr>
               </table>
+              <button type="button" class="pdf-knop" data-pdf="${i}">⬇ Download PDF-factuur</button>
             </div>
           </article>`;
         })
         .join('') +
       `<div class="omzet-totaal">Totale omzet (incl. btw): <strong>${euro(totaalOmzet)}</strong></div>`;
+
+    // PDF-knoppen koppelen aan de bijbehorende factuur.
+    box.querySelectorAll<HTMLButtonElement>('[data-pdf]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const f = facturen[Number(btn.dataset.pdf)];
+        if (f) openFactuurPdf(f);
+      });
+    });
   }
 
   function tekenAlles() {
@@ -741,6 +751,24 @@ const base = import.meta.env.BASE_URL;
     font-weight: 700;
     color: var(--kleur-tekst);
   }
+
+  .pdf-knop {
+    margin-top: 1rem;
+    width: 100%;
+    font: inherit;
+    font-family: var(--font-kop);
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--kleur-wit);
+    background-color: var(--kleur-hout);
+    border: none;
+    border-radius: 8px;
+    padding: 0.55rem 0.8rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .pdf-knop:hover { background-color: var(--kleur-hout-donker); }
 
   .omzet-totaal {
     grid-column: 1 / -1;

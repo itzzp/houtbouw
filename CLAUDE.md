@@ -57,9 +57,30 @@ dezelfde bestandsnaam, dan werkt de rest vanzelf.
 ## Inhoud aanpassen
 
 - **Project toevoegen/wijzigen** → `src/data/projecten.ts` (en zet de foto in `src/assets/projecten/`).
-- **Materieel toevoegen/wijzigen** → `src/data/materieel.ts`.
-- **Contactgegevens** → staan als placeholders in `src/components/Footer.astro` en
-  `src/pages/info.astro`. Vervang adres, telefoon en e-mail door de echte gegevens.
+- **Materieel toevoegen/wijzigen** → `src/data/materieel.ts` (naam, omschrijving, dagprijs).
+- **Bedrijfsgegevens** (naam, adres, KvK, btw, IBAN, e-mail) → centraal in
+  `src/data/bedrijf.ts`; worden o.a. op de PDF-factuur gebruikt.
+
+## Verhuur-demo (reserveren + beheer)
+
+- **`src/pages/verhuur.astro`** — publieke reserveringspagina: formulier met live
+  beschikbaarheidscheck en prijsindicatie, plus planning per materieel.
+- **`src/pages/beheer.astro`** — beheeromgeving (demo-login `admin`/`admin`):
+  kerncijfers, planning-tijdbalk, reserveringentabel en facturen met **Download PDF**.
+- **`src/scripts/verhuurStore.ts`** — client-side "store": seed-reserveringen
+  (`src/data/reserveringen.ts`) + eigen reserveringen in `localStorage`, plus
+  beschikbaarheid, status en factuurberekening.
+- **`src/scripts/factuurPdf.ts`** — opent een printbare factuur (→ "Bewaren als PDF").
+
+> Let op: dit is een **demo**. Reserveringen staan alleen in de browser, niet centraal,
+> en de login is geen echte beveiliging. Voor een productiesysteem is een backend nodig.
+
+### Aanvraagformulier echt laten mailen (Formspree)
+
+Het reserveringsformulier verstuurt aanvragen naar de mailbox. Zonder configuratie
+opent het een vooraf ingevulde e-mail (`mailto`). Voor automatische verzending:
+maak gratis een formulier op [formspree.io](https://formspree.io) en zet het
+endpoint in `src/data/bedrijf.ts` bij `formspreeEndpoint`.
 
 ## Commando's
 
