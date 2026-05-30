@@ -1,0 +1,18 @@
+{
+  "name": "kloosterman-houtbouw",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Website voor Kloosterman Houtbouw in Doezum",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "^6.4.2",
+    "sharp": "^0.34.5"
+  }
+}

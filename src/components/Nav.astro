@@ -1,0 +1,187 @@
+---
+// Gedeelde navigatiebalk met mobiel-menu (puur CSS via checkbox).
+// BASE_URL ('/' lokaal, '/houtbouw/' op GitHub Pages) zorgt dat links
+// op elke hostlocatie kloppen.
+const base = import.meta.env.BASE_URL;
+const links = [
+  { pad: '', label: 'Projecten' },
+  { pad: 'info', label: 'Info' },
+  { pad: 'verhuur', label: 'Materieel verhuur' },
+];
+
+// Bepaal welke link actief is t.o.v. de huidige pagina.
+const normaliseer = (p: string) => p.replace(/\/+$/, '') || '/';
+const huidig = normaliseer(Astro.url.pathname);
+---
+
+<header class="site-header">
+  <div class="container nav-balk">
+    <a href={base} class="logo">
+      <span class="logo-merk">Kloosterman bouw</span>
+      <span class="logo-sub">en houtbewerking · Doezum</span>
+    </a>
+
+    <input type="checkbox" id="menu-toggle" class="menu-toggle" aria-hidden="true" />
+    <label for="menu-toggle" class="menu-knop" aria-label="Menu openen of sluiten">
+      <span></span><span></span><span></span>
+    </label>
+
+    <nav class="hoofdnav" aria-label="Hoofdnavigatie">
+      <ul>
+        {
+          links.map((link) => {
+            const href = `${base}${link.pad}`;
+            const actief = normaliseer(href) === huidig;
+            return (
+              <li>
+                <a href={href} aria-current={actief ? 'page' : undefined} class={actief ? 'actief' : ''}>
+                  {link.label}
+                </a>
+              </li>
+            );
+          })
+        }
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    background-color: var(--kleur-rood);
+    color: var(--kleur-creme);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: var(--schaduw-zacht);
+  }
+
+  .nav-balk {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 0.85rem;
+  }
+
+  .logo {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+    color: var(--kleur-creme);
+  }
+
+  .logo:hover {
+    text-decoration: none;
+  }
+
+  .logo-merk {
+    font-family: var(--font-kop);
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+
+  .logo-sub {
+    font-family: var(--font-script);
+    font-size: 1.05rem;
+    line-height: 1;
+    color: var(--kleur-creme);
+    opacity: 0.92;
+  }
+
+  .hoofdnav ul {
+    list-style: none;
+    display: flex;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+  }
+
+  .hoofdnav a {
+    display: block;
+    color: var(--kleur-creme);
+    font-family: var(--font-kop);
+    font-weight: 600;
+    padding: 0.5rem 0.85rem;
+    border-radius: var(--radius);
+    transition: background-color 0.2s ease;
+  }
+
+  .hoofdnav a:hover,
+  .hoofdnav a.actief {
+    background-color: var(--kleur-rood-licht);
+    text-decoration: none;
+  }
+
+  .hoofdnav a.actief {
+    box-shadow: inset 0 -3px 0 var(--kleur-hout-licht);
+  }
+
+  /* Mobiel-menu schakelaar */
+  .menu-toggle {
+    display: none;
+  }
+
+  .menu-knop {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    padding: 0.4rem;
+  }
+
+  .menu-knop span {
+    display: block;
+    width: 26px;
+    height: 3px;
+    background-color: var(--kleur-creme);
+    border-radius: 2px;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  @media (max-width: 720px) {
+    .menu-knop {
+      display: flex;
+    }
+
+    .hoofdnav {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background-color: var(--kleur-rood);
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+      box-shadow: var(--schaduw);
+    }
+
+    .hoofdnav ul {
+      flex-direction: column;
+      gap: 0;
+      padding: 0.5rem 1.25rem 1rem;
+    }
+
+    .hoofdnav a {
+      padding: 0.85rem 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .menu-toggle:checked ~ .hoofdnav {
+      max-height: 320px;
+    }
+
+    .menu-toggle:checked ~ .menu-knop span:nth-child(1) {
+      transform: translateY(8px) rotate(45deg);
+    }
+
+    .menu-toggle:checked ~ .menu-knop span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .menu-toggle:checked ~ .menu-knop span:nth-child(3) {
+      transform: translateY(-8px) rotate(-45deg);
+    }
+  }
+</style>

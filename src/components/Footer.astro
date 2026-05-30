@@ -1,0 +1,109 @@
+---
+// Gedeelde footer met contactgegevens.
+const jaar = new Date().getFullYear();
+const base = import.meta.env.BASE_URL;
+---
+
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div>
+      <h3>Kloosterman bouw <span class="merk-script">en houtbewerking</span></h3>
+      <p>Ambachtelijke houtbouw in Doezum en omstreken — Groningen &amp; Friesland.</p>
+      <p class="zakelijk">
+        KvK 01159062 · BTW NL003177242B10<br />
+        IBAN NL50 RABO 0385 7489 49
+      </p>
+    </div>
+
+    <div>
+      <h3>Contact</h3>
+      <ul class="footer-lijst">
+        <li>Provincialeweg 127, 9863 PE Doezum</li>
+        <li><a href="tel:+31652090713">06 - 52 09 07 13</a></li>
+        <li><a href="mailto:info@kloostermanbouw.nl">info@kloostermanbouw.nl</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <h3>Pagina's</h3>
+      <ul class="footer-lijst">
+        <li><a href={base}>Projecten</a></li>
+        <li><a href={`${base}info`}>Info</a></li>
+        <li><a href={`${base}verhuur`}>Materieel verhuur</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer-onder">
+    <div class="container">
+      <p>&copy; {jaar} Kloosterman bouw en houtbewerking · Doezum. Alle rechten voorbehouden.</p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    background-color: var(--kleur-hout-donker);
+    color: var(--kleur-creme);
+    margin-top: auto;
+  }
+
+  .footer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 2rem;
+    padding-block: 3rem;
+  }
+
+  .site-footer h3 {
+    color: var(--kleur-creme);
+    margin-bottom: 0.75rem;
+  }
+
+  .merk-script {
+    font-family: var(--font-script);
+    font-weight: 600;
+    color: var(--kleur-hout-licht);
+  }
+
+  .zakelijk {
+    font-size: 0.82rem;
+    color: rgba(244, 236, 224, 0.6) !important;
+    margin-top: 0.5rem;
+  }
+
+  .site-footer p {
+    color: rgba(244, 236, 224, 0.82);
+  }
+
+  .footer-lijst {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .footer-lijst li {
+    margin-bottom: 0.4rem;
+    color: rgba(244, 236, 224, 0.82);
+  }
+
+  .footer-lijst a {
+    color: var(--kleur-creme);
+  }
+
+  .footer-lijst a:hover {
+    color: var(--kleur-hout-licht);
+  }
+
+  .footer-onder {
+    background-color: rgba(0, 0, 0, 0.18);
+    padding-block: 1rem;
+  }
+
+  .footer-onder p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: rgba(244, 236, 224, 0.7);
+    text-align: center;
+  }
+</style>
