@@ -16,8 +16,9 @@ const base = import.meta.env.BASE_URL;
         meteen of het beschikbaar is. Je aanvraag komt bij ons binnen en we bevestigen 'm.
       </p>
       <p class="demo-balk">
-        🛠️ <strong>Demo:</strong> reserveringen worden in deze browser bewaard. Beheer ze op de
-        <a href={`${base}beheer`}>beheerpagina</a>.
+        🛠️ <strong>Demo:</strong> bij reserveren openen we een vooraf ingevulde e-mail naar ons,
+        en de aanvraag verschijnt in het <a href={`${base}beheer`}>beheer</a>. (Met een
+        Formspree-koppeling gaat verzenden vanzelf op de achtergrond.)
       </p>
     </div>
   </section>
@@ -118,6 +119,10 @@ const base = import.meta.env.BASE_URL;
     vandaagISO,
     BTW_TARIEF,
   } from '../scripts/verhuurStore';
+  import { bedrijf } from '../data/bedrijf';
+
+  const formspreeEndpoint = bedrijf.formspreeEndpoint;
+  const bedrijfEmail = bedrijf.email;
 
   const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T | null;
 
@@ -223,6 +228,10 @@ const base = import.meta.env.BASE_URL;
 
     voegReserveringToe({ materieelId: id, klant, email, start: s, eind });
     const naam = materieel.find((m) => m.id === id)?.naam ?? 'materieel';
+
+    // De aanvraag écht versturen naar Kloosterman.
+    verstuurAanvraag({ naam, klant, email, periode: periodeNL(s, eind), dagen: aantalDagen(s, eind) });
+
     toonMelding(
       `✓ Aanvraag ontvangen! Je reservering voor ${naam} (${periodeNL(s, eind)}) staat klaar en wacht op bevestiging. We nemen contact op via ${email}.`,
       'ok',
@@ -231,6 +240,46 @@ const base = import.meta.env.BASE_URL;
     prijsInd && (prijsInd.hidden = true);
     tekenPlanning();
   });
+
+  // Stuurt de aanvraag naar de mailbox van Kloosterman.
+  // Met Formspree-endpoint → echte verzending op de achtergrond.
+  // Zonder endpoint → opent een vooraf ingevulde e-mail (mailto), zodat het
+  // ook zonder configuratie meteen werkt.
+  function verstuurAanvraag(g: {
+    naam: string;
+    klant: string;
+    email: string;
+    periode: string;
+    dagen: number;
+  }) {
+    const onderwerp = `Reserveringsaanvraag: ${g.naam}`;
+    const tekst =
+      `Nieuwe reserveringsaanvraag via de website:\n\n` +
+      `Materieel: ${g.naam}\n` +
+      `Periode: ${g.periode} (${g.dagen} dag(en))\n` +
+      `Naam: ${g.klant}\n` +
+      `E-mail: ${g.email}\n`;
+
+    if (formspreeEndpoint) {
+      fetch(formspreeEndpoint, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          _subject: onderwerp,
+          materieel: g.naam,
+          periode: g.periode,
+          naam: g.klant,
+          email: g.email,
+        }),
+      }).catch(() => {
+        /* stil falen: de reservering staat al in de planning */
+      });
+    } else {
+      // Fallback: open de mailclient met alles vooringevuld.
+      const url = `mailto:${bedrijfEmail}?subject=${encodeURIComponent(onderwerp)}&body=${encodeURIComponent(tekst)}`;
+      window.open(url, '_blank');
+    }
+  }
 
   tekenPlanning();
 </script>
