@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { materieel } from '../data/materieel';
+import { euro } from '../scripts/verhuurStore';
 
 const base = import.meta.env.BASE_URL;
 ---
@@ -11,30 +12,84 @@ const base = import.meta.env.BASE_URL;
       <p class="kruimel">Materieel verhuur</p>
       <h1>Materieel te huur</h1>
       <p class="intro">
-        Naast bouwen verhuren we ook een deel van ons materieel. Hieronder een overzicht.
-        Er is geen online boekingssysteem — <strong>neem contact op om te huren</strong> en
-        we vertellen je graag meer over beschikbaarheid en prijs.
+        Reserveer eenvoudig online. Kies een stuk materieel en een periode, dan zie je
+        meteen of het beschikbaar is. Je aanvraag komt bij ons binnen en we bevestigen 'm.
       </p>
-      <a href={`${base}info`} class="knop knop--licht-vol">Neem contact op om te huren</a>
+      <p class="demo-balk">
+        🛠️ <strong>Demo:</strong> reserveringen worden in deze browser bewaard. Beheer ze op de
+        <a href={`${base}beheer`}>beheerpagina</a>.
+      </p>
     </div>
   </section>
 
+  <!-- Reserveringsformulier -->
   <section class="sectie">
     <div class="container">
+      <div class="reserveer-blok">
+        <h2>Reserveer materieel</h2>
+        <form id="reserveer-form" class="reserveer-form" novalidate>
+          <div class="veld veld--breed">
+            <label for="f-materieel">Materieel</label>
+            <select id="f-materieel" required>
+              <option value="" disabled selected>Kies materieel…</option>
+              {
+                materieel.map((m) => (
+                  <option value={m.id} data-dagprijs={m.dagprijs}>
+                    {m.naam} — {euro(m.dagprijs)}/dag
+                  </option>
+                ))
+              }
+            </select>
+          </div>
+          <div class="veld">
+            <label for="f-start">Van</label>
+            <input type="date" id="f-start" required />
+          </div>
+          <div class="veld">
+            <label for="f-eind">Tot en met</label>
+            <input type="date" id="f-eind" required />
+          </div>
+          <div class="veld">
+            <label for="f-klant">Naam</label>
+            <input type="text" id="f-klant" autocomplete="name" required />
+          </div>
+          <div class="veld">
+            <label for="f-email">E-mail</label>
+            <input type="email" id="f-email" autocomplete="email" required />
+          </div>
+          <div class="veld veld--breed reserveer-actie">
+            <div id="prijs-indicatie" class="prijs-indicatie" hidden></div>
+            <button type="submit" class="knop">Controleer &amp; reserveer</button>
+          </div>
+        </form>
+        <p id="form-melding" class="form-melding" role="status" hidden></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Overzicht materieel met live beschikbaarheid -->
+  <section class="sectie materieel-sectie">
+    <div class="container">
+      <h2>Ons materieel</h2>
       <div class="materieel-grid">
         {
           materieel.map((item) => (
-            <article class="materieel-kaart">
+            <article class="materieel-kaart" data-materieel={item.id}>
               <div class="materieel-body">
                 <h3>{item.naam}</h3>
                 <p>{item.omschrijving}</p>
+                <div class="planning" data-planning={item.id}>
+                  <span class="planning-laden">Planning laden…</span>
+                </div>
               </div>
               <div class="materieel-voet">
                 <span class="prijs">
-                  <span class="prijs-label">Prijs</span>
-                  {item.prijs}
+                  <span class="prijs-label">Prijs per dag</span>
+                  {euro(item.dagprijs)}
                 </span>
-                <a href={`${base}info`} class="huur-link">Neem contact op om te huren →</a>
+                <button type="button" class="huur-knop" data-reserveer={item.id}>
+                  Reserveer dit →
+                </button>
               </div>
             </article>
           ))
@@ -42,12 +97,143 @@ const base = import.meta.env.BASE_URL;
       </div>
 
       <p class="verhuur-noot">
-        Prijzen en beschikbaarheid op aanvraag. Materieel wordt schoon en in goede staat
+        Prijzen zijn per dag, exclusief 21% btw. Materieel wordt schoon en in goede staat
         verhuurd; we vragen je het zo terug te brengen.
       </p>
     </div>
   </section>
 </Layout>
+
+<script>
+  import {
+    materieel,
+    bezetteReserveringen,
+    isBeschikbaar,
+    voegReserveringToe,
+    aantalDagen,
+    periodeNL,
+    weergaveStatus,
+    STATUS_LABEL,
+    euro,
+    vandaagISO,
+    BTW_TARIEF,
+  } from '../scripts/verhuurStore';
+
+  const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T | null;
+
+  const form = $<HTMLFormElement>('#reserveer-form');
+  const selMat = $<HTMLSelectElement>('#f-materieel');
+  const inStart = $<HTMLInputElement>('#f-start');
+  const inEind = $<HTMLInputElement>('#f-eind');
+  const inKlant = $<HTMLInputElement>('#f-klant');
+  const inEmail = $<HTMLInputElement>('#f-email');
+  const prijsInd = $<HTMLDivElement>('#prijs-indicatie');
+  const melding = $<HTMLParagraphElement>('#form-melding');
+
+  // Niet in het verleden kunnen kiezen.
+  const vandaag = vandaagISO();
+  if (inStart) inStart.min = vandaag;
+  if (inEind) inEind.min = vandaag;
+
+  function toonMelding(tekst: string, soort: 'ok' | 'fout') {
+    if (!melding) return;
+    melding.textContent = tekst;
+    melding.className = `form-melding form-melding--${soort}`;
+    melding.hidden = false;
+  }
+
+  function dagprijsVan(id: string): number {
+    return materieel.find((m) => m.id === id)?.dagprijs ?? 0;
+  }
+
+  // Live prijsindicatie tijdens invullen.
+  function ververPrijs() {
+    if (!prijsInd || !selMat || !inStart || !inEind) return;
+    const id = selMat.value;
+    const s = inStart.value;
+    const e = inEind.value;
+    if (!id || !s || !e || e < s) {
+      prijsInd.hidden = true;
+      return;
+    }
+    const dagen = aantalDagen(s, e);
+    const sub = dagen * dagprijsVan(id);
+    const totaal = sub * (1 + BTW_TARIEF);
+    const vrij = isBeschikbaar(id, s, e);
+    prijsInd.hidden = false;
+    prijsInd.innerHTML = vrij
+      ? `<span class="ind-ok">✓ Beschikbaar</span> · ${dagen} dag(en) · ${euro(sub)} excl. btw · <strong>${euro(totaal)} incl. btw</strong>`
+      : `<span class="ind-fout">✗ Niet beschikbaar in deze periode</span> — kies andere datums`;
+  }
+
+  [selMat, inStart, inEind].forEach((el) => el?.addEventListener('change', ververPrijs));
+
+  // Planning per materieelstuk tonen.
+  function tekenPlanning() {
+    document.querySelectorAll<HTMLElement>('[data-planning]').forEach((box) => {
+      const id = box.dataset.planning!;
+      const items = bezetteReserveringen(id)
+        .slice()
+        .sort((a, b) => a.start.localeCompare(b.start));
+      if (items.length === 0) {
+        box.innerHTML = `<span class="vrij-nu">✓ Nu volledig beschikbaar</span>`;
+        return;
+      }
+      const rijen = items
+        .map((r) => {
+          const st = weergaveStatus(r);
+          return `<li><span class="stip stip--${st}"></span>${periodeNL(r.start, r.eind)} <em>(${STATUS_LABEL[st].toLowerCase()})</em></li>`;
+        })
+        .join('');
+      box.innerHTML = `<p class="planning-kop">Gereserveerde periodes:</p><ul class="planning-lijst">${rijen}</ul>`;
+    });
+  }
+
+  // "Reserveer dit" knoppen → formulier prefillen en ernaartoe scrollen.
+  document.querySelectorAll<HTMLButtonElement>('[data-reserveer]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (selMat) selMat.value = btn.dataset.reserveer!;
+      ververPrijs();
+      $('#reserveer-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      inStart?.focus();
+    });
+  });
+
+  // Verzenden.
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const id = selMat?.value ?? '';
+    const s = inStart?.value ?? '';
+    const eind = inEind?.value ?? '';
+    const klant = inKlant?.value.trim() ?? '';
+    const email = inEmail?.value.trim() ?? '';
+
+    if (!id || !s || !eind || !klant || !email) {
+      toonMelding('Vul alle velden in om te reserveren.', 'fout');
+      return;
+    }
+    if (eind < s) {
+      toonMelding('De einddatum ligt vóór de startdatum.', 'fout');
+      return;
+    }
+    if (!isBeschikbaar(id, s, eind)) {
+      toonMelding('Dit materieel is in de gekozen periode al gereserveerd. Kies andere datums.', 'fout');
+      return;
+    }
+
+    voegReserveringToe({ materieelId: id, klant, email, start: s, eind });
+    const naam = materieel.find((m) => m.id === id)?.naam ?? 'materieel';
+    toonMelding(
+      `✓ Aanvraag ontvangen! Je reservering voor ${naam} (${periodeNL(s, eind)}) staat klaar en wacht op bevestiging. We nemen contact op via ${email}.`,
+      'ok',
+    );
+    form.reset();
+    prijsInd && (prijsInd.hidden = true);
+    tekenPlanning();
+  });
+
+  tekenPlanning();
+</script>
 
 <style>
   .pagina-kop {
@@ -63,10 +249,6 @@ const base = import.meta.env.BASE_URL;
     color: rgba(244, 236, 224, 0.92);
   }
 
-  .pagina-kop .intro strong {
-    color: var(--kleur-creme);
-  }
-
   .kruimel {
     text-transform: uppercase;
     letter-spacing: 0.12em;
@@ -76,22 +258,126 @@ const base = import.meta.env.BASE_URL;
     margin-bottom: 0.4rem;
   }
 
-  .knop--licht-vol {
-    background-color: var(--kleur-hout);
-    border-color: var(--kleur-hout);
-    color: var(--kleur-wit);
-    margin-top: 1.5rem;
+  .demo-balk {
+    margin-top: 1.25rem;
+    background-color: rgba(0, 0, 0, 0.18);
+    border-radius: var(--radius);
+    padding: 0.7rem 1rem;
+    font-size: 0.92rem;
+    color: var(--kleur-creme);
   }
 
-  .knop--licht-vol:hover {
-    background-color: var(--kleur-hout-licht);
-    border-color: var(--kleur-hout-licht);
+  .demo-balk a {
+    color: var(--kleur-creme);
+    text-decoration: underline;
+  }
+
+  /* Reserveringsformulier */
+  .reserveer-blok {
+    background-color: var(--kleur-wit);
+    border: 1px solid var(--kleur-creme-donker);
+    border-radius: var(--radius);
+    padding: 1.75rem;
+    box-shadow: var(--schaduw-zacht);
+  }
+
+  .reserveer-blok h2 {
+    margin-top: 0;
+  }
+
+  .reserveer-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .veld {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .veld--breed {
+    grid-column: 1 / -1;
+  }
+
+  .veld label {
+    font-family: var(--font-kop);
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--kleur-rood);
+  }
+
+  .veld input,
+  .veld select {
+    font-family: inherit;
+    font-size: 1rem;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid var(--kleur-creme-donker);
+    border-radius: 8px;
+    background-color: var(--kleur-creme);
+    color: var(--kleur-tekst);
+  }
+
+  .veld input:focus,
+  .veld select:focus {
+    outline: 2px solid var(--kleur-hout-licht);
+    outline-offset: 1px;
+  }
+
+  .reserveer-actie {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .prijs-indicatie {
+    font-size: 0.95rem;
+    color: var(--kleur-tekst-zacht);
+  }
+
+  .ind-ok {
+    color: #2e7d32;
+    font-weight: 700;
+  }
+
+  .ind-fout {
+    color: var(--kleur-rood);
+    font-weight: 700;
+  }
+
+  .form-melding {
+    margin-top: 1rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius);
+    font-size: 0.95rem;
+  }
+
+  .form-melding--ok {
+    background-color: #e6f4ea;
+    color: #1e5631;
+    border: 1px solid #b6dcc0;
+  }
+
+  .form-melding--fout {
+    background-color: #fdecea;
+    color: #8a160f;
+    border: 1px solid #f5c2bd;
+  }
+
+  /* Materieel-overzicht */
+  .materieel-sectie {
+    background-color: var(--kleur-creme-donker);
   }
 
   .materieel-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.5rem;
+    margin-top: 1.5rem;
   }
 
   .materieel-kaart {
@@ -102,12 +388,6 @@ const base = import.meta.env.BASE_URL;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  .materieel-kaart:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--schaduw);
   }
 
   .materieel-body {
@@ -120,9 +400,63 @@ const base = import.meta.env.BASE_URL;
   }
 
   .materieel-body p {
-    margin: 0;
+    margin: 0 0 0.75rem;
     font-size: 0.95rem;
   }
+
+  .planning {
+    font-size: 0.85rem;
+    border-top: 1px dashed var(--kleur-creme-donker);
+    padding-top: 0.7rem;
+  }
+
+  .planning-laden,
+  .vrij-nu {
+    color: var(--kleur-tekst-zacht);
+  }
+
+  .vrij-nu {
+    color: #2e7d32;
+    font-weight: 600;
+  }
+
+  .planning-kop {
+    margin: 0 0 0.35rem;
+    font-weight: 600;
+    color: var(--kleur-tekst);
+  }
+
+  .planning-lijst {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .planning-lijst li {
+    color: var(--kleur-tekst-zacht);
+  }
+
+  .planning-lijst em {
+    font-style: normal;
+    opacity: 0.75;
+  }
+
+  .stip {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    margin-right: 0.45rem;
+    background-color: var(--kleur-hout);
+  }
+
+  .stip--lopend { background-color: #e09f3e; }
+  .stip--gereserveerd { background-color: var(--kleur-rood); }
+  .stip--aangevraagd { background-color: #6c8ea4; }
+  .stip--afgerond { background-color: #9aa0a6; }
 
   .materieel-voet {
     padding: 1rem 1.5rem;
@@ -149,10 +483,21 @@ const base = import.meta.env.BASE_URL;
     color: var(--kleur-tekst-zacht);
   }
 
-  .huur-link {
+  .huur-knop {
+    font-family: var(--font-kop);
     font-weight: 600;
-    color: var(--kleur-hout-donker);
     font-size: 0.92rem;
+    color: var(--kleur-wit);
+    background-color: var(--kleur-hout);
+    border: none;
+    border-radius: 8px;
+    padding: 0.55rem 0.8rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .huur-knop:hover {
+    background-color: var(--kleur-hout-donker);
   }
 
   .verhuur-noot {
@@ -161,5 +506,11 @@ const base = import.meta.env.BASE_URL;
     font-style: italic;
     color: var(--kleur-tekst-zacht);
     text-align: center;
+  }
+
+  @media (max-width: 560px) {
+    .reserveer-form {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

@@ -1,0 +1,772 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const base = import.meta.env.BASE_URL;
+---
+
+<Layout titel="Beheer" beschrijving="Beheeromgeving voor de materieelverhuur van Kloosterman bouw en houtbewerking.">
+  <!-- Demo-login. Let op: dit is een schijnbeveiliging in de browser
+       (admin/admin). Voor een echt afgeschermde achterkant is een
+       server met echte authenticatie nodig. -->
+  <div id="login-overlay" class="login-overlay">
+    <form id="login-form" class="login-kaart" novalidate>
+      <p class="kruimel login-kruimel">Beheer · inloggen</p>
+      <h1>Verhuurbeheer</h1>
+      <p class="login-uitleg">Log in om de planning, reserveringen en facturen te beheren.</p>
+      <div class="veld">
+        <label for="login-gebruiker">Gebruikersnaam</label>
+        <input type="text" id="login-gebruiker" autocomplete="username" required />
+      </div>
+      <div class="veld">
+        <label for="login-wachtwoord">Wachtwoord</label>
+        <input type="password" id="login-wachtwoord" autocomplete="current-password" required />
+      </div>
+      <p id="login-fout" class="login-fout" role="alert" hidden>Onjuiste gebruikersnaam of wachtwoord.</p>
+      <button type="submit" class="knop login-knop">Inloggen</button>
+      <p class="login-hint">Demo-inlog: <code>admin</code> / <code>admin</code></p>
+    </form>
+  </div>
+
+  <div id="beheer-inhoud" hidden>
+  <section class="sectie pagina-kop">
+    <div class="container">
+      <p class="kruimel">Beheer · achterkant</p>
+      <h1>Verhuurbeheer</h1>
+      <p class="intro">
+        Overzicht van alle reserveringen, de planning per materieelstuk en de facturen
+        per gehuurde periode.
+      </p>
+      <p class="demo-balk">
+        🔒 <strong>Demo-beheeromgeving.</strong> In een echt systeem zit hier een login.
+        Gegevens staan nu in deze browser. <button id="reset-demo" type="button" class="reset-knop">Demo resetten</button>
+        · <button id="uitloggen" type="button" class="reset-knop">Uitloggen</button>
+        · <a href={`${base}verhuur`}>Naar verhuurpagina</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- Kerncijfers -->
+  <section class="sectie">
+    <div class="container">
+      <div id="stats" class="stats-grid"></div>
+    </div>
+  </section>
+
+  <!-- Planning -->
+  <section class="sectie blok-sectie">
+    <div class="container">
+      <h2>Planning per materieel</h2>
+      <p class="sectie-uitleg">Tijdbalk van de komende en recente reserveringen.</p>
+      <div id="planning" class="planning-board"></div>
+      <div class="legenda">
+        <span><i class="stip stip--lopend"></i>Loopt nu</span>
+        <span><i class="stip stip--gereserveerd"></i>Gereserveerd</span>
+        <span><i class="stip stip--aangevraagd"></i>Aangevraagd</span>
+        <span><i class="stip stip--afgerond"></i>Afgerond</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Reserveringen -->
+  <section class="sectie">
+    <div class="container">
+      <h2>Reserveringen</h2>
+      <p class="sectie-uitleg">Bevestig aanvragen of annuleer reserveringen.</p>
+      <div class="tabel-wrap">
+        <table class="beheer-tabel" id="reserveringen-tabel">
+          <thead>
+            <tr>
+              <th>Materieel</th>
+              <th>Klant</th>
+              <th>Periode</th>
+              <th>Dagen</th>
+              <th>Status</th>
+              <th>Acties</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Facturen -->
+  <section class="sectie blok-sectie">
+    <div class="container">
+      <h2>Facturen per gehuurde periode</h2>
+      <p class="sectie-uitleg">Automatisch opgesteld uit de reserveringen (excl. geannuleerd).</p>
+      <div id="facturen" class="facturen-lijst"></div>
+    </div>
+  </section>
+  </div>
+</Layout>
+
+<script>
+  import {
+    alleReserveringen,
+    bezetteReserveringen,
+    alleFacturen,
+    wijzigStatus,
+    resetDemo,
+    weergaveStatus,
+    STATUS_LABEL,
+    materieelById,
+    periodeNL,
+    datumNL,
+    aantalDagen,
+    euro,
+    vandaagISO,
+  } from '../scripts/verhuurStore';
+  import type { ReserveringStatus } from '../scripts/verhuurStore';
+
+  const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T | null;
+
+  // ── Kerncijfers ─────────────────────────────────────────────
+  function tekenStats() {
+    const box = $('#stats');
+    if (!box) return;
+    const res = alleReserveringen();
+    const actief = res.filter((r) => weergaveStatus(r) === 'lopend').length;
+    const aangevraagd = res.filter((r) => weergaveStatus(r) === 'aangevraagd').length;
+    const gepland = res.filter((r) => weergaveStatus(r) === 'gereserveerd').length;
+    const omzet = alleFacturen().reduce((som, f) => som + f.totaal, 0);
+    const kaarten = [
+      { label: 'Loopt nu', waarde: String(actief), klasse: 'lopend' },
+      { label: 'Aangevraagd', waarde: String(aangevraagd), klasse: 'aangevraagd' },
+      { label: 'Gepland', waarde: String(gepland), klasse: 'gereserveerd' },
+      { label: 'Omzet (incl. btw)', waarde: euro(omzet), klasse: 'omzet' },
+    ];
+    box.innerHTML = kaarten
+      .map(
+        (k) =>
+          `<div class="stat-kaart stat-kaart--${k.klasse}"><span class="stat-waarde">${k.waarde}</span><span class="stat-label">${k.label}</span></div>`,
+      )
+      .join('');
+  }
+
+  // ── Planning-board (tijdbalk) ───────────────────────────────
+  function tekenPlanning() {
+    const board = $('#planning');
+    if (!board) return;
+    const res = bezetteReserveringen();
+
+    // Tijdvenster: van 7 dagen geleden tot de laatste einddatum (min. +30 dagen).
+    const nu = vandaagISO();
+    const start = new Date(Date.parse(nu) - 7 * 86_400_000);
+    let eind = new Date(Date.parse(nu) + 30 * 86_400_000);
+    res.forEach((r) => {
+      const e = new Date(r.eind + 'T00:00:00');
+      if (e > eind) eind = e;
+    });
+    const totaalMs = eind.getTime() - start.getTime();
+    const pct = (d: string) => ((Date.parse(d) - start.getTime()) / totaalMs) * 100;
+
+    // Groepeer per materieel (alleen stukken met reserveringen).
+    const perMat = new Map<string, typeof res>();
+    res.forEach((r) => {
+      const lijst = perMat.get(r.materieelId) ?? [];
+      lijst.push(r);
+      perMat.set(r.materieelId, lijst);
+    });
+
+    if (perMat.size === 0) {
+      board.innerHTML = `<p class="leeg">Nog geen reserveringen.</p>`;
+      return;
+    }
+
+    const nuPct = pct(nu);
+    let html = '';
+    for (const [matId, lijst] of perMat) {
+      const naam = materieelById(matId)?.naam ?? matId;
+      const balken = lijst
+        .map((r) => {
+          const st = weergaveStatus(r);
+          const links = Math.max(0, pct(r.start));
+          const breedte = Math.min(100 - links, pct(r.eind) - links + 100 / 60);
+          return `<div class="tijdbalk tijdbalk--${st}" style="left:${links}%;width:${breedte}%" title="${r.klant}: ${periodeNL(r.start, r.eind)}"><span>${r.klant}</span></div>`;
+        })
+        .join('');
+      html += `<div class="planning-rij"><div class="planning-naam">${naam}</div><div class="planning-spoor"><div class="nu-lijn" style="left:${nuPct}%"></div>${balken}</div></div>`;
+    }
+    html += `<div class="planning-as"><span>${datumNL(start.toISOString().slice(0, 10))}</span><span>vandaag</span><span>${datumNL(eind.toISOString().slice(0, 10))}</span></div>`;
+    board.innerHTML = html;
+  }
+
+  // ── Reserveringen-tabel ─────────────────────────────────────
+  function tekenTabel() {
+    const tbody = $('#reserveringen-tabel tbody');
+    if (!tbody) return;
+    const res = alleReserveringen()
+      .slice()
+      .sort((a, b) => a.start.localeCompare(b.start));
+    if (res.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="leeg">Nog geen reserveringen.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = res
+      .map((r) => {
+        const st = weergaveStatus(r);
+        const naam = materieelById(r.materieelId)?.naam ?? r.materieelId;
+        const dagen = aantalDagen(r.start, r.eind);
+        const acties: string[] = [];
+        if (st === 'aangevraagd') {
+          acties.push(`<button class="mini-knop mini-knop--ok" data-actie="gereserveerd" data-id="${r.id}">Bevestigen</button>`);
+        }
+        if (st !== 'geannuleerd' && st !== 'afgerond') {
+          acties.push(`<button class="mini-knop mini-knop--fout" data-actie="geannuleerd" data-id="${r.id}">Annuleren</button>`);
+        }
+        if (st === 'geannuleerd') {
+          acties.push(`<button class="mini-knop" data-actie="gereserveerd" data-id="${r.id}">Terugzetten</button>`);
+        }
+        return `<tr>
+          <td data-label="Materieel">${naam}</td>
+          <td data-label="Klant"><div>${r.klant}</div><a class="klant-mail" href="mailto:${r.email}">${r.email}</a></td>
+          <td data-label="Periode">${periodeNL(r.start, r.eind)}</td>
+          <td data-label="Dagen">${dagen}</td>
+          <td data-label="Status"><span class="badge badge--${st}">${STATUS_LABEL[st]}</span></td>
+          <td data-label="Acties" class="acties-cel">${acties.join(' ') || '—'}</td>
+        </tr>`;
+      })
+      .join('');
+
+    tbody.querySelectorAll<HTMLButtonElement>('[data-actie]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        wijzigStatus(btn.dataset.id!, btn.dataset.actie as ReserveringStatus);
+        tekenAlles();
+      });
+    });
+  }
+
+  // ── Facturen ────────────────────────────────────────────────
+  function tekenFacturen() {
+    const box = $('#facturen');
+    if (!box) return;
+    const facturen = alleFacturen();
+    if (facturen.length === 0) {
+      box.innerHTML = `<p class="leeg">Nog geen facturen.</p>`;
+      return;
+    }
+    const totaalOmzet = facturen.reduce((s, f) => s + f.totaal, 0);
+    box.innerHTML =
+      facturen
+        .map((f) => {
+          const st = weergaveStatus(f.reservering);
+          return `<article class="factuur">
+            <div class="factuur-kop">
+              <div>
+                <span class="factuur-nr">Factuur ${f.nummer}</span>
+                <span class="badge badge--${st}">${STATUS_LABEL[st]}</span>
+              </div>
+              <strong class="factuur-totaal">${euro(f.totaal)}</strong>
+            </div>
+            <div class="factuur-body">
+              <div class="factuur-klant">
+                <span class="factuur-naam">${f.reservering.klant}</span>
+                <span class="factuur-mat">${f.materieel?.naam ?? f.reservering.materieelId}</span>
+                <span class="factuur-periode">${periodeNL(f.reservering.start, f.reservering.eind)}</span>
+              </div>
+              <table class="factuur-regels">
+                <tr><td>${f.dagen} dag(en) × ${euro(f.dagprijs)}</td><td>${euro(f.subtotaal)}</td></tr>
+                <tr><td>Btw 21%</td><td>${euro(f.btw)}</td></tr>
+                <tr class="factuur-eind"><td>Totaal</td><td>${euro(f.totaal)}</td></tr>
+              </table>
+            </div>
+          </article>`;
+        })
+        .join('') +
+      `<div class="omzet-totaal">Totale omzet (incl. btw): <strong>${euro(totaalOmzet)}</strong></div>`;
+  }
+
+  function tekenAlles() {
+    tekenStats();
+    tekenPlanning();
+    tekenTabel();
+    tekenFacturen();
+  }
+
+  $('#reset-demo')?.addEventListener('click', () => {
+    if (confirm('Demo terugzetten naar de begintoestand? Je eigen reserveringen verdwijnen.')) {
+      resetDemo();
+      tekenAlles();
+    }
+  });
+
+  // ── Demo-login (admin / admin) ──────────────────────────────
+  // Schijnbeveiliging in de browser; voldoende voor een demo, maar geen
+  // echte beveiliging. Voor productie hoort hier server-side authenticatie.
+  const AUTH_SLEUTEL = 'khb_beheer_auth';
+  const overlay = $('#login-overlay');
+  const inhoud = $('#beheer-inhoud');
+  const loginForm = $<HTMLFormElement>('#login-form');
+  const loginFout = $('#login-fout');
+
+  function toonBeheer() {
+    if (overlay) overlay.hidden = true;
+    if (inhoud) inhoud.hidden = false;
+    tekenAlles();
+  }
+
+  function toonLogin() {
+    if (overlay) overlay.hidden = false;
+    if (inhoud) inhoud.hidden = true;
+  }
+
+  if (sessionStorage.getItem(AUTH_SLEUTEL) === 'ja') {
+    toonBeheer();
+  } else {
+    toonLogin();
+  }
+
+  loginForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const g = $<HTMLInputElement>('#login-gebruiker')?.value.trim();
+    const w = $<HTMLInputElement>('#login-wachtwoord')?.value ?? '';
+    if (g === 'admin' && w === 'admin') {
+      sessionStorage.setItem(AUTH_SLEUTEL, 'ja');
+      if (loginFout) loginFout.hidden = true;
+      toonBeheer();
+    } else if (loginFout) {
+      loginFout.hidden = false;
+    }
+  });
+
+  $('#uitloggen')?.addEventListener('click', () => {
+    sessionStorage.removeItem(AUTH_SLEUTEL);
+    toonLogin();
+    window.scrollTo({ top: 0 });
+  });
+</script>
+
+<style>
+  /* Login-scherm */
+  .login-overlay {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.25rem;
+    background-color: var(--kleur-creme-donker);
+  }
+
+  .login-kaart {
+    background-color: var(--kleur-wit);
+    border: 1px solid var(--kleur-creme-donker);
+    border-top: 5px solid var(--kleur-rood);
+    border-radius: var(--radius);
+    box-shadow: var(--schaduw);
+    padding: 2rem;
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .login-kaart h1 { margin: 0; font-size: 1.6rem; }
+  .login-kruimel { margin-bottom: 0; color: var(--kleur-hout-donker); }
+  .login-uitleg { margin: 0 0 0.5rem; color: var(--kleur-tekst-zacht); font-size: 0.95rem; }
+
+  .login-kaart .veld {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .login-kaart label {
+    font-family: var(--font-kop);
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--kleur-rood);
+  }
+
+  .login-kaart input {
+    font-family: inherit;
+    font-size: 1rem;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid var(--kleur-creme-donker);
+    border-radius: 8px;
+    background-color: var(--kleur-creme);
+    color: var(--kleur-tekst);
+  }
+
+  .login-kaart input:focus {
+    outline: 2px solid var(--kleur-hout-licht);
+    outline-offset: 1px;
+  }
+
+  .login-knop { margin-top: 0.5rem; text-align: center; cursor: pointer; }
+
+  .login-fout {
+    margin: 0;
+    color: var(--kleur-rood);
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .login-hint {
+    margin: 0.4rem 0 0;
+    font-size: 0.82rem;
+    color: var(--kleur-tekst-zacht);
+    text-align: center;
+  }
+
+  .login-hint code {
+    background-color: var(--kleur-creme-donker);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+  }
+
+  .pagina-kop {
+    background-color: var(--kleur-rood);
+    color: var(--kleur-creme);
+  }
+
+  .pagina-kop h1 { color: var(--kleur-creme); }
+  .pagina-kop .intro { color: rgba(244, 236, 224, 0.92); }
+
+  .kruimel {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--kleur-hout-licht);
+    margin-bottom: 0.4rem;
+  }
+
+  .demo-balk {
+    margin-top: 1.25rem;
+    background-color: rgba(0, 0, 0, 0.18);
+    border-radius: var(--radius);
+    padding: 0.7rem 1rem;
+    font-size: 0.92rem;
+    color: var(--kleur-creme);
+  }
+
+  .demo-balk a { color: var(--kleur-creme); text-decoration: underline; }
+
+  .reset-knop {
+    font: inherit;
+    color: var(--kleur-creme);
+    background: transparent;
+    border: 1px solid var(--kleur-creme);
+    border-radius: 6px;
+    padding: 0.15rem 0.6rem;
+    cursor: pointer;
+  }
+
+  .reset-knop:hover { background: rgba(255, 255, 255, 0.12); }
+
+  .sectie-uitleg {
+    margin-top: -0.4rem;
+    color: var(--kleur-tekst-zacht);
+  }
+
+  .blok-sectie { background-color: var(--kleur-creme-donker); }
+
+  /* Kerncijfers */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 1rem;
+  }
+
+  .stat-kaart {
+    background-color: var(--kleur-wit);
+    border: 1px solid var(--kleur-creme-donker);
+    border-left: 5px solid var(--kleur-hout);
+    border-radius: var(--radius);
+    padding: 1.2rem 1.3rem;
+    box-shadow: var(--schaduw-zacht);
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .stat-kaart--lopend { border-left-color: #e09f3e; }
+  .stat-kaart--aangevraagd { border-left-color: #6c8ea4; }
+  .stat-kaart--gereserveerd { border-left-color: var(--kleur-rood); }
+  .stat-kaart--omzet { border-left-color: #2e7d32; }
+
+  .stat-waarde {
+    font-family: var(--font-kop);
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--kleur-tekst);
+    line-height: 1.1;
+  }
+
+  .stat-label {
+    font-size: 0.85rem;
+    color: var(--kleur-tekst-zacht);
+  }
+
+  /* Planning-board */
+  .planning-board {
+    margin-top: 1.25rem;
+    background-color: var(--kleur-wit);
+    border: 1px solid var(--kleur-creme-donker);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    overflow: hidden;
+  }
+
+  .planning-rij {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.35rem 0;
+  }
+
+  .planning-naam {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--kleur-tekst);
+  }
+
+  .planning-spoor {
+    position: relative;
+    height: 26px;
+    background-color: var(--kleur-creme);
+    border-radius: 6px;
+  }
+
+  .tijdbalk {
+    position: absolute;
+    top: 3px;
+    height: 20px;
+    border-radius: 5px;
+    min-width: 6px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    color: #fff;
+    font-size: 0.72rem;
+  }
+
+  .tijdbalk span {
+    padding: 0 0.35rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tijdbalk--lopend { background-color: #e09f3e; }
+  .tijdbalk--gereserveerd { background-color: var(--kleur-rood); }
+  .tijdbalk--aangevraagd { background-color: #6c8ea4; }
+  .tijdbalk--afgerond { background-color: #9aa0a6; }
+
+  .nu-lijn {
+    position: absolute;
+    top: -2px;
+    bottom: -2px;
+    width: 2px;
+    background-color: #111;
+    opacity: 0.55;
+    z-index: 2;
+  }
+
+  .planning-as {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    padding-left: 145px;
+    font-size: 0.75rem;
+    color: var(--kleur-tekst-zacht);
+  }
+
+  .legenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.1rem;
+    margin-top: 1rem;
+    font-size: 0.82rem;
+    color: var(--kleur-tekst-zacht);
+  }
+
+  .legenda span { display: inline-flex; align-items: center; }
+
+  .stip {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    margin-right: 0.4rem;
+  }
+
+  .stip--lopend { background-color: #e09f3e; }
+  .stip--gereserveerd { background-color: var(--kleur-rood); }
+  .stip--aangevraagd { background-color: #6c8ea4; }
+  .stip--afgerond { background-color: #9aa0a6; }
+
+  /* Tabel */
+  .tabel-wrap { overflow-x: auto; margin-top: 1.25rem; }
+
+  .beheer-tabel {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--kleur-wit);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--schaduw-zacht);
+  }
+
+  .beheer-tabel th,
+  .beheer-tabel td {
+    padding: 0.75rem 0.9rem;
+    text-align: left;
+    border-bottom: 1px solid var(--kleur-creme-donker);
+    font-size: 0.92rem;
+    vertical-align: top;
+  }
+
+  .beheer-tabel th {
+    background-color: var(--kleur-rood);
+    color: var(--kleur-creme);
+    font-family: var(--font-kop);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .beheer-tabel tr:last-child td { border-bottom: none; }
+
+  .klant-mail { font-size: 0.82rem; color: var(--kleur-hout-donker); }
+
+  .badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.18rem 0.55rem;
+    border-radius: 999px;
+    color: #fff;
+    white-space: nowrap;
+  }
+
+  .badge--lopend { background-color: #e09f3e; }
+  .badge--gereserveerd { background-color: var(--kleur-rood); }
+  .badge--aangevraagd { background-color: #6c8ea4; }
+  .badge--afgerond { background-color: #9aa0a6; }
+  .badge--geannuleerd { background-color: #c0392b; opacity: 0.6; }
+
+  .acties-cel { white-space: nowrap; }
+
+  .mini-knop {
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid var(--kleur-creme-donker);
+    background-color: var(--kleur-creme);
+    color: var(--kleur-tekst);
+    cursor: pointer;
+    margin: 0.1rem 0;
+  }
+
+  .mini-knop--ok { background-color: #2e7d32; color: #fff; border-color: #2e7d32; }
+  .mini-knop--fout { background-color: #fff; color: var(--kleur-rood); border-color: var(--kleur-rood); }
+  .mini-knop:hover { filter: brightness(0.95); }
+
+  /* Facturen */
+  .facturen-lijst {
+    margin-top: 1.25rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .factuur {
+    background-color: var(--kleur-wit);
+    border: 1px solid var(--kleur-creme-donker);
+    border-radius: var(--radius);
+    box-shadow: var(--schaduw-zacht);
+    overflow: hidden;
+  }
+
+  .factuur-kop {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.9rem 1.1rem;
+    background-color: var(--kleur-creme);
+    border-bottom: 1px solid var(--kleur-creme-donker);
+  }
+
+  .factuur-nr {
+    font-family: var(--font-kop);
+    font-weight: 700;
+    color: var(--kleur-rood);
+    margin-right: 0.5rem;
+  }
+
+  .factuur-totaal { font-size: 1.1rem; color: var(--kleur-tekst); }
+
+  .factuur-body { padding: 1rem 1.1rem; }
+
+  .factuur-klant {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    margin-bottom: 0.7rem;
+  }
+
+  .factuur-naam { font-weight: 600; }
+  .factuur-mat { color: var(--kleur-tekst-zacht); font-size: 0.9rem; }
+  .factuur-periode { color: var(--kleur-tekst-zacht); font-size: 0.85rem; }
+
+  .factuur-regels { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .factuur-regels td { padding: 0.25rem 0; color: var(--kleur-tekst-zacht); }
+  .factuur-regels td:last-child { text-align: right; color: var(--kleur-tekst); }
+
+  .factuur-eind td {
+    border-top: 1px solid var(--kleur-creme-donker);
+    padding-top: 0.5rem;
+    font-weight: 700;
+    color: var(--kleur-tekst);
+  }
+
+  .omzet-totaal {
+    grid-column: 1 / -1;
+    text-align: right;
+    font-size: 1.05rem;
+    padding: 0.5rem 0.25rem;
+    color: var(--kleur-tekst);
+  }
+
+  .leeg {
+    color: var(--kleur-tekst-zacht);
+    font-style: italic;
+    padding: 1rem 0;
+  }
+
+  /* Mobiel: tabel als kaarten */
+  @media (max-width: 640px) {
+    .beheer-tabel thead { display: none; }
+    .beheer-tabel,
+    .beheer-tabel tbody,
+    .beheer-tabel tr,
+    .beheer-tabel td { display: block; width: 100%; }
+    .beheer-tabel tr {
+      margin-bottom: 1rem;
+      border: 1px solid var(--kleur-creme-donker);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .beheer-tabel td {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      border-bottom: 1px solid var(--kleur-creme-donker);
+    }
+    .beheer-tabel td::before {
+      content: attr(data-label);
+      font-weight: 600;
+      color: var(--kleur-rood);
+    }
+    .planning-rij { grid-template-columns: 90px 1fr; }
+    .planning-as { padding-left: 100px; }
+  }
+</style>
