@@ -1,0 +1,85 @@
+---
+import { Image } from 'astro:assets';
+import type { Project } from '../data/projecten';
+
+interface Props {
+  project: Project;
+}
+
+const { project } = Astro.props;
+---
+
+<article class="kaart">
+  <div class="kaart-foto">
+    <Image
+      src={project.afbeelding}
+      alt={project.alt}
+      widths={[400, 600, 800]}
+      sizes="(max-width: 720px) 100vw, 350px"
+      loading="lazy"
+    />
+    <span class="kaart-categorie">{project.categorie}</span>
+  </div>
+  <div class="kaart-body">
+    <h3>{project.titel}</h3>
+    <p>{project.beschrijving}</p>
+  </div>
+</article>
+
+<style>
+  .kaart {
+    background-color: var(--kleur-wit);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--schaduw-zacht);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid var(--kleur-creme-donker);
+  }
+
+  .kaart:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--schaduw);
+  }
+
+  .kaart-foto {
+    position: relative;
+    aspect-ratio: 3 / 2;
+    overflow: hidden;
+    background-color: var(--kleur-creme-donker);
+  }
+
+  .kaart-foto :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .kaart-categorie {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    background-color: var(--kleur-groen);
+    color: var(--kleur-creme);
+    font-family: var(--font-kop);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    letter-spacing: 0.03em;
+  }
+
+  .kaart-body {
+    padding: 1.25rem;
+  }
+
+  .kaart-body h3 {
+    margin-bottom: 0.4rem;
+  }
+
+  .kaart-body p {
+    margin: 0;
+    font-size: 0.98rem;
+  }
+</style>

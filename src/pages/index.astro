@@ -1,0 +1,145 @@
+---
+import { Image } from 'astro:assets';
+import Layout from '../layouts/Layout.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import { projecten } from '../data/projecten';
+import hero from '../assets/projecten/hero.jpg';
+---
+
+<Layout titel="Projecten">
+  <!-- Hero -->
+  <section class="hero">
+    <Image
+      src={hero}
+      alt="Houtbouw door Kloosterman Houtbouw"
+      class="hero-bg"
+      widths={[600, 1000, 1600]}
+      sizes="100vw"
+      loading="eager"
+    />
+    <div class="hero-overlay"></div>
+    <div class="container hero-inhoud">
+      <p class="hero-kop">Kloosterman Houtbouw · Doezum</p>
+      <h1>Ambachtelijke houtbouw met karakter</h1>
+      <p class="intro">
+        Van houtskeletbouw woningen tot veranda's, schuren en tuinkantoren — bekijk een selectie
+        van eerdere projecten in Groningen en Friesland.
+      </p>
+      <div class="hero-knoppen">
+        <a href="#projecten" class="knop">Bekijk projecten</a>
+        <a href="/info" class="knop knop--lijn knop--licht">Over ons</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Projecten-galerij -->
+  <section id="projecten" class="sectie">
+    <div class="container">
+      <div class="tekst-midden">
+        <h2>Eerdere projecten</h2>
+        <p class="intro">
+          Elk project is maatwerk. Hieronder een greep uit het werk dat we de afgelopen jaren
+          met plezier hebben gerealiseerd.
+        </p>
+      </div>
+
+      <div class="galerij">
+        {projecten.map((project) => <ProjectCard project={project} />)}
+      </div>
+    </div>
+  </section>
+
+  <!-- Oproep -->
+  <section class="sectie oproep">
+    <div class="container tekst-midden">
+      <h2>Een eigen bouwplan?</h2>
+      <p class="intro">
+        Benieuwd wat we voor jou kunnen betekenen? Neem gerust contact op — we denken graag mee.
+      </p>
+      <a href="/info" class="knop">Neem contact op</a>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .hero {
+    position: relative;
+    color: var(--kleur-creme);
+    display: grid;
+    align-items: center;
+    min-height: clamp(420px, 70vh, 620px);
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+  }
+
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to right,
+      rgba(47, 74, 54, 0.88),
+      rgba(47, 74, 54, 0.55)
+    );
+    z-index: 1;
+  }
+
+  .hero-inhoud {
+    position: relative;
+    z-index: 2;
+    padding-block: 3rem;
+    max-width: 720px;
+  }
+
+  .hero-inhoud h1 {
+    color: var(--kleur-creme);
+  }
+
+  .hero-inhoud .intro {
+    color: rgba(244, 236, 224, 0.92);
+  }
+
+  .hero-kop {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--kleur-hout-licht);
+    margin-bottom: 0.5rem;
+  }
+
+  .hero-knoppen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+    margin-top: 1.5rem;
+  }
+
+  .knop--licht {
+    color: var(--kleur-creme);
+    border-color: var(--kleur-creme);
+  }
+
+  .knop--licht:hover {
+    background-color: var(--kleur-creme);
+    color: var(--kleur-groen);
+  }
+
+  .galerij {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2.5rem;
+  }
+
+  .oproep {
+    background-color: var(--kleur-creme-donker);
+  }
+</style>
