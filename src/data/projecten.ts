@@ -24,7 +24,7 @@ export const projecten: Project[] = [
     beschrijving:
       'Een complete, goed geïsoleerde gezinswoning opgebouwd in houtskeletbouw. Snel wind- en waterdicht, duurzaam en energiezuinig.',
     afbeelding: houtskeletbouw,
-    alt: 'Houtskeletbouw woning gebouwd door Kloosterman Houtbouw',
+    alt: 'Houtskeletbouw woning gebouwd door Kloosterman bouw en houtbewerking',
   },
   {
     titel: 'Veranda met overkapping',

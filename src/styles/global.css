@@ -4,12 +4,13 @@
    ========================================================================== */
 
 :root {
-  /* Natuurlijke kleuren: warm hout, donkergroen, crème */
+  /* Huisstijl: dieprood (logo Kloosterman bouw) + warm hout en crème */
   --kleur-hout: #8a5a2b;
   --kleur-hout-donker: #6b4423;
-  --kleur-hout-licht: #b07d49;
-  --kleur-groen: #2f4a36;
-  --kleur-groen-licht: #3c5a3c;
+  --kleur-hout-licht: #c89a6a;
+  --kleur-rood: #b01e17;
+  --kleur-rood-donker: #8a160f;
+  --kleur-rood-licht: #c9362c;
   --kleur-creme: #f4ece0;
   --kleur-creme-donker: #e8dcc8;
   --kleur-tekst: #2c241c;
@@ -21,9 +22,10 @@
   --radius: 10px;
   --max-breedte: 1100px;
 
-  /* Karaktervol lettertype voor koppen, rustige body */
+  /* Karaktervol lettertype voor koppen, rustige body, script voor accent */
   --font-kop: 'Bitter', Georgia, 'Times New Roman', serif;
   --font-body: 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-script: 'Dancing Script', 'Brush Script MT', cursive;
 }
 
 *,
@@ -52,7 +54,7 @@ h3,
 h4 {
   font-family: var(--font-kop);
   line-height: 1.2;
-  color: var(--kleur-groen);
+  color: var(--kleur-rood);
   margin: 0 0 0.5em;
 }
 
@@ -122,12 +124,12 @@ img {
 
 .knop--lijn {
   background-color: transparent;
-  color: var(--kleur-groen);
-  border-color: var(--kleur-groen);
+  color: var(--kleur-rood);
+  border-color: var(--kleur-rood);
 }
 
 .knop--lijn:hover {
-  background-color: var(--kleur-groen);
+  background-color: var(--kleur-rood);
   color: var(--kleur-wit);
 }
 

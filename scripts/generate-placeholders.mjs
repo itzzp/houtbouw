@@ -9,8 +9,8 @@ import { dirname, join } from 'node:path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outDir = join(__dirname, '..', 'src', 'assets', 'projecten');
 
-// Warme houtbouw-tinten voor de placeholders.
-const palette = ['#8a5a2b', '#6b4423', '#a9762f', '#3c5a3c', '#7a8b5a', '#9c6b3e'];
+// Warme houtbouw-tinten + dieprood (huisstijl) voor de placeholders.
+const palette = ['#8a5a2b', '#6b4423', '#a9762f', '#9c6b3e', '#b01e17', '#7a4a24'];
 
 /** @param {string} hex */
 function darken(hex) {
@@ -27,7 +27,7 @@ const images = [
   { file: 'schuur.jpg', label: 'Houten schuur', color: palette[1] },
   { file: 'dakkapel.jpg', label: 'Dakkapel', color: palette[5] },
   { file: 'tuinkantoor.jpg', label: 'Tuinkantoor', color: palette[3] },
-  { file: 'hero.jpg', label: 'Kloosterman Houtbouw', color: palette[4] },
+  { file: 'hero.jpg', label: 'Kloosterman bouw', color: palette[5] },
 ];
 
 const W = 1200;

@@ -4,6 +4,8 @@ import Layout from '../layouts/Layout.astro';
 import ProjectCard from '../components/ProjectCard.astro';
 import { projecten } from '../data/projecten';
 import hero from '../assets/projecten/hero.jpg';
+
+const base = import.meta.env.BASE_URL;
 ---
 
 <Layout titel="Projecten">
@@ -11,7 +13,7 @@ import hero from '../assets/projecten/hero.jpg';
   <section class="hero">
     <Image
       src={hero}
-      alt="Houtbouw door Kloosterman Houtbouw"
+      alt="Houtbouw door Kloosterman bouw en houtbewerking"
       class="hero-bg"
       widths={[600, 1000, 1600]}
       sizes="100vw"
@@ -19,7 +21,7 @@ import hero from '../assets/projecten/hero.jpg';
     />
     <div class="hero-overlay"></div>
     <div class="container hero-inhoud">
-      <p class="hero-kop">Kloosterman Houtbouw · Doezum</p>
+      <p class="hero-kop">Kloosterman bouw en houtbewerking · Doezum</p>
       <h1>Ambachtelijke houtbouw met karakter</h1>
       <p class="intro">
         Van houtskeletbouw woningen tot veranda's, schuren en tuinkantoren — bekijk een selectie
@@ -27,7 +29,7 @@ import hero from '../assets/projecten/hero.jpg';
       </p>
       <div class="hero-knoppen">
         <a href="#projecten" class="knop">Bekijk projecten</a>
-        <a href="/info" class="knop knop--lijn knop--licht">Over ons</a>
+        <a href={`${base}info`} class="knop knop--lijn knop--licht">Over ons</a>
       </div>
     </div>
   </section>
@@ -56,7 +58,7 @@ import hero from '../assets/projecten/hero.jpg';
       <p class="intro">
         Benieuwd wat we voor jou kunnen betekenen? Neem gerust contact op — we denken graag mee.
       </p>
-      <a href="/info" class="knop">Neem contact op</a>
+      <a href={`${base}info`} class="knop">Neem contact op</a>
     </div>
   </section>
 </Layout>
@@ -85,8 +87,8 @@ import hero from '../assets/projecten/hero.jpg';
     inset: 0;
     background: linear-gradient(
       to right,
-      rgba(47, 74, 54, 0.88),
-      rgba(47, 74, 54, 0.55)
+      rgba(60, 20, 16, 0.86),
+      rgba(120, 24, 18, 0.55)
     );
     z-index: 1;
   }
@@ -129,7 +131,7 @@ import hero from '../assets/projecten/hero.jpg';
 
   .knop--licht:hover {
     background-color: var(--kleur-creme);
-    color: var(--kleur-groen);
+    color: var(--kleur-rood);
   }
 
   .galerij {

@@ -1,6 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { materieel } from '../data/materieel';
+
+const base = import.meta.env.BASE_URL;
 ---
 
 <Layout titel="Materieel verhuur">
@@ -13,7 +15,7 @@ import { materieel } from '../data/materieel';
         Er is geen online boekingssysteem — <strong>neem contact op om te huren</strong> en
         we vertellen je graag meer over beschikbaarheid en prijs.
       </p>
-      <a href="/info" class="knop knop--licht-vol">Neem contact op om te huren</a>
+      <a href={`${base}info`} class="knop knop--licht-vol">Neem contact op om te huren</a>
     </div>
   </section>
 
@@ -32,7 +34,7 @@ import { materieel } from '../data/materieel';
                   <span class="prijs-label">Prijs</span>
                   {item.prijs}
                 </span>
-                <a href="/info" class="huur-link">Neem contact op om te huren →</a>
+                <a href={`${base}info`} class="huur-link">Neem contact op om te huren →</a>
               </div>
             </article>
           ))
@@ -49,7 +51,7 @@ import { materieel } from '../data/materieel';
 
 <style>
   .pagina-kop {
-    background-color: var(--kleur-groen);
+    background-color: var(--kleur-rood);
     color: var(--kleur-creme);
   }
 
@@ -134,7 +136,7 @@ import { materieel } from '../data/materieel';
   .prijs {
     font-family: var(--font-kop);
     font-weight: 700;
-    color: var(--kleur-groen);
+    color: var(--kleur-rood);
     font-size: 1.05rem;
   }
 

@@ -1,37 +1,42 @@
 ---
-// Gedeelde footer met contactgegevens (placeholders).
+// Gedeelde footer met contactgegevens.
 const jaar = new Date().getFullYear();
+const base = import.meta.env.BASE_URL;
 ---
 
 <footer class="site-footer">
   <div class="container footer-grid">
     <div>
-      <h3>Kloosterman Houtbouw</h3>
+      <h3>Kloosterman bouw <span class="merk-script">en houtbewerking</span></h3>
       <p>Ambachtelijke houtbouw in Doezum en omstreken — Groningen &amp; Friesland.</p>
+      <p class="zakelijk">
+        KvK 01159062 · BTW NL003177242B10<br />
+        IBAN NL50 RABO 0385 7489 49
+      </p>
     </div>
 
     <div>
       <h3>Contact</h3>
       <ul class="footer-lijst">
-        <li>Voorbeeldstraat 1, 9863 PA Doezum</li>
-        <li><a href="tel:+31600000000">06 - 00 00 00 00</a></li>
-        <li><a href="mailto:info@kloostermanhoutbouw.nl">info@kloostermanhoutbouw.nl</a></li>
+        <li>Provincialeweg 127, 9863 PE Doezum</li>
+        <li><a href="tel:+31652090713">06 - 52 09 07 13</a></li>
+        <li><a href="mailto:info@kloostermanbouw.nl">info@kloostermanbouw.nl</a></li>
       </ul>
     </div>
 
     <div>
       <h3>Pagina's</h3>
       <ul class="footer-lijst">
-        <li><a href="/">Projecten</a></li>
-        <li><a href="/info">Info</a></li>
-        <li><a href="/verhuur">Materieel verhuur</a></li>
+        <li><a href={base}>Projecten</a></li>
+        <li><a href={`${base}info`}>Info</a></li>
+        <li><a href={`${base}verhuur`}>Materieel verhuur</a></li>
       </ul>
     </div>
   </div>
 
   <div class="footer-onder">
     <div class="container">
-      <p>&copy; {jaar} Kloosterman Houtbouw · Doezum. Alle rechten voorbehouden.</p>
+      <p>&copy; {jaar} Kloosterman bouw en houtbewerking · Doezum. Alle rechten voorbehouden.</p>
     </div>
   </div>
 </footer>
@@ -53,6 +58,18 @@ const jaar = new Date().getFullYear();
   .site-footer h3 {
     color: var(--kleur-creme);
     margin-bottom: 0.75rem;
+  }
+
+  .merk-script {
+    font-family: var(--font-script);
+    font-weight: 600;
+    color: var(--kleur-hout-licht);
+  }
+
+  .zakelijk {
+    font-size: 0.82rem;
+    color: rgba(244, 236, 224, 0.6) !important;
+    margin-top: 0.5rem;
   }
 
   .site-footer p {

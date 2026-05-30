@@ -1,20 +1,24 @@
 ---
 // Gedeelde navigatiebalk met mobiel-menu (puur CSS via checkbox).
+// BASE_URL ('/' lokaal, '/houtbouw/' op GitHub Pages) zorgt dat links
+// op elke hostlocatie kloppen.
+const base = import.meta.env.BASE_URL;
 const links = [
-  { href: '/', label: 'Projecten' },
-  { href: '/info', label: 'Info' },
-  { href: '/verhuur', label: 'Materieel verhuur' },
+  { pad: '', label: 'Projecten' },
+  { pad: 'info', label: 'Info' },
+  { pad: 'verhuur', label: 'Materieel verhuur' },
 ];
 
 // Bepaal welke link actief is t.o.v. de huidige pagina.
-const huidig = Astro.url.pathname.replace(/\/$/, '') || '/';
+const normaliseer = (p: string) => p.replace(/\/+$/, '') || '/';
+const huidig = normaliseer(Astro.url.pathname);
 ---
 
 <header class="site-header">
   <div class="container nav-balk">
-    <a href="/" class="logo">
-      <span class="logo-merk">Kloosterman</span>
-      <span class="logo-sub">Houtbouw · Doezum</span>
+    <a href={base} class="logo">
+      <span class="logo-merk">Kloosterman bouw</span>
+      <span class="logo-sub">en houtbewerking · Doezum</span>
     </a>
 
     <input type="checkbox" id="menu-toggle" class="menu-toggle" aria-hidden="true" />
@@ -26,11 +30,11 @@ const huidig = Astro.url.pathname.replace(/\/$/, '') || '/';
       <ul>
         {
           links.map((link) => {
-            const pad = link.href.replace(/\/$/, '') || '/';
-            const actief = pad === huidig;
+            const href = `${base}${link.pad}`;
+            const actief = normaliseer(href) === huidig;
             return (
               <li>
-                <a href={link.href} aria-current={actief ? 'page' : undefined} class={actief ? 'actief' : ''}>
+                <a href={href} aria-current={actief ? 'page' : undefined} class={actief ? 'actief' : ''}>
                   {link.label}
                 </a>
               </li>
@@ -44,7 +48,7 @@ const huidig = Astro.url.pathname.replace(/\/$/, '') || '/';
 
 <style>
   .site-header {
-    background-color: var(--kleur-groen);
+    background-color: var(--kleur-rood);
     color: var(--kleur-creme);
     position: sticky;
     top: 0;
@@ -75,14 +79,15 @@ const huidig = Astro.url.pathname.replace(/\/$/, '') || '/';
     font-family: var(--font-kop);
     font-size: 1.4rem;
     font-weight: 700;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
   }
 
   .logo-sub {
-    font-size: 0.78rem;
-    color: var(--kleur-hout-licht);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    font-family: var(--font-script);
+    font-size: 1.05rem;
+    line-height: 1;
+    color: var(--kleur-creme);
+    opacity: 0.92;
   }
 
   .hoofdnav ul {
@@ -105,7 +110,7 @@ const huidig = Astro.url.pathname.replace(/\/$/, '') || '/';
 
   .hoofdnav a:hover,
   .hoofdnav a.actief {
-    background-color: var(--kleur-groen-licht);
+    background-color: var(--kleur-rood-licht);
     text-decoration: none;
   }
 
@@ -145,7 +150,7 @@ const huidig = Astro.url.pathname.replace(/\/$/, '') || '/';
       top: 100%;
       left: 0;
       right: 0;
-      background-color: var(--kleur-groen);
+      background-color: var(--kleur-rood);
       max-height: 0;
       overflow: hidden;
       transition: max-height 0.25s ease;
