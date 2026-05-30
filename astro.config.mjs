@@ -5,7 +5,9 @@ import { defineConfig } from 'astro/config';
 // (https://itzzp.github.io/houtbouw/). Het base-pad komt uit een env-variabele,
 // zodat de site lokaal op '/' draait en online op '/houtbouw/'. Bij een eigen
 // domein (bijv. kloostermanbouw.nl) laat je BASE_PATH gewoon weg.
-const base = process.env.BASE_PATH ?? '/';
+const rawBase = process.env.BASE_PATH ?? '/';
+// Garandeer een afsluitende slash, zodat `${BASE_URL}info` => `/houtbouw/info`.
+const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
 const site = process.env.SITE_URL ?? 'https://kloostermanbouw.nl';
 
 // https://astro.build/config
